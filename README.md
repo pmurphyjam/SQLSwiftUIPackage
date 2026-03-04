@@ -26,7 +26,7 @@ You only need to add SQLSwiftUIPackage to your Xcode Project to use.
 
 It will also add two other packages, Apples Logger, and ObjectMapper, this is done automatically through the package dependencies.
   
-To add this package go to Xcode Project 'Info' 'Build Settings' 'Swift Packages' select 'Swift Packages' and hit the '+' button and then enter the URL(git@github.com:pmurphyjam/SQLPackage.git) for this. Xcode should then do the rest for you. There will be three Packages, SQLDataAccess, DataManager, Sqldb, click on all three.
+To add this package go to Xcode Project 'Info' 'Build Settings' 'Swift Packages' select 'Swift Packages' and hit the '+' button and then enter the URL(git@github.com:pmurphyjam/SQLSwiftUIPackage.git) for this. Xcode should then do the rest for you. There will be three Packages, SQLDataAccess, DataManager, Sqldb, click on all three.
 
 ## Initializing SQLSwiftUIPackage
 
@@ -257,7 +257,7 @@ struct Models {
   
   For your App you'll need to create a new AppInfo struct and the equivalent Model for it.
   
-## Advantages of using SQLPackage
+## Advantages of using SQLSwiftUIPackage
   
   As you can see writing the SQL statements is easy for your Models since SQLDataAccess supports writing the SQL statements directly with simple strings like, 'select * from AppInfo'. You don't need to worry about Preferred Statements and obscure SQLite3 low level C method calls, SQLDataAccess does all that for you, and is battle tested so it doesn't leak memory and uses a queue to sync all your operations so they are guaranteed to complete on the proper thread. SQLDataAccess can run on the back ground thread or the foreground thread without crashing unlike Core Data and Realm. Typically you'll write or insert into your DB on a back ground thread through a Server API using Alamofire and decode the Server JSON using the Codable Model defined in AppInfo.swift. Once your data has been written into SQLite, then just issue a completion event to your View Controller, and then call your View Model which will then consume the data from SQLDataAccess on the foreground thread to display your just updated data in your view controller so it can display it.
 
@@ -334,7 +334,7 @@ In addition SQLDataAccess will also work with SQLCipher, and it's pretty easy to
 
 SQLDataAccess is a very fast and efficient class and guaranteed to not leak memory, and uses the low level C calls from SQLite, and nothing is faster then low level C. In addition it is thread safe so you can read or write your DB on the foreground or background threads without crashing or corrupting your data. SQLDataAccess can be used in place of CoreData or Realm or FMDB. CoreData really just uses SQLite as it's underlying data store without all the CoreData integrity fault crashes that come with CoreData. CoreData and Realm need to update their models on the main thread which is a real problem if you're trying to display data in a view controller which is consuming a lot of data at the same time. This means your view controller will become slow and not scroll efficiently for a TableView or CollectionView because it's updating CoreData or Realm Entities. In addition if you do these updates on a background thread Core Data and Realm will crash. SQLDataAccess has none of these threading problems, and you can read or write data on either the background or foreground threads.
 
-So make your life easier, and all your Apps more reliable, and use SQLPackage, and best of all it's free with no license required!
+So make your life easier, and all your Apps more reliable, and use SQLSwiftUIPackage, and best of all it's free with no license required!
 
 ---
 
