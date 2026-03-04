@@ -17,6 +17,7 @@ SQLSwiftUIPackage now includes **SQLExtensions**, a powerful set of tools for mo
 - ⚡️ **Reactive Queries** - Auto-updating queries when data changes
 - 👁️ **Swift Observation** - `@Observable` ViewModels
 - 📱 **SwiftUI Property Wrapper** - `@SQLQuery` for seamless view integration
+- ⚡️ **SwiftData-like App Group Support** - `@SQLContainer` for SwiftData-like Containers for Widget & Extension support to share a database seemlessly between apps.
 
 See [SQLExtensions Examples](#sqlextensions-examples) below for detailed usage.
 
@@ -1023,4 +1024,185 @@ TableName.userProfile
 ```
 
 For complete documentation, see `Sources/SQLExtensions/README.md`.
+
+---
+
+## SQLContainer - Simplified Setup with App Groups
+
+`SQLContainer` provides a SwiftData-like API for easy database setup, including seamless App Group support for sharing data between your app, widgets, and extensions.
+
+### Basic Setup
+
+```swift
+import SQLExtensions
+
+@main
+struct MyApp: App {
+    let container: SQLContainer
+
+    init() {
+        // Simple setup - uses Documents directory
+        do {
+            container = try SQLContainer()
+        } catch {
+            fatalError("Failed to initialize database: \(error)")
+        }
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+        .sqlContainer(container) // Optional: inject into environment
+    }
+}
+```
+
+### App Group Setup (Share with Widgets & Extensions)
+
+```swift
+import SQLExtensions
+
+@main
+struct MyApp: App {
+    let container: SQLContainer
+
+    init() {
+        do {
+            // Setup with app group - automatically handles shared container
+            container = try SQLContainer(
+                configuration: SQLConfiguration(
+                    databaseName: "MyApp.db",
+                    groupIdentifier: "group.com.company.myapp"
+                )
+            )
+        } catch {
+            fatalError("Failed to initialize database: \(error)")
+        }
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
+```
+
+### Widget with App Group
+
+```swift
+import WidgetKit
+import SwiftUI
+import SQLExtensions
+
+struct ExerciseWidget: Widget {
+    let kind: String = "ExerciseWidget"
+
+    init() {
+        // Same configuration as main app!
+        try? SQLContainer.setupShared(
+            databaseName: "MyApp.db",
+            groupIdentifier: "group.com.company.myapp"
+        )
+    }
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: Provider()) { entry in
+            ExerciseWidgetView(entry: entry)
+        }
+    }
+}
+
+struct Provider: TimelineProvider {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
+        // Query data directly - container already setup!
+        let exercises = SQLSelectQuery(TableName.exercise)
+            .limit(5)
+            .decode(Exercise.self)
+
+        let entry = SimpleEntry(date: Date(), exercises: exercises)
+        completion(Timeline(entries: [entry], policy: .atEnd))
+    }
+}
+```
+
+### Advanced Configuration Options
+
+```swift
+// Custom database name
+let container = try SQLContainer(databaseName: "CustomDB.db")
+
+// App group with custom settings
+let container = try SQLContainer(
+    configuration: SQLConfiguration(
+        databaseName: "Workout.db",
+        groupIdentifier: "group.com.fitness.app",
+        copyFromBundle: true  // Copy from bundle if missing
+    )
+)
+
+// Using shared instance pattern
+try SQLContainer.setupShared(
+    databaseName: "Shared.db",
+    groupIdentifier: "group.com.company.app"
+)
+
+// Access anywhere in your app
+let container = await SQLContainer.shared
+```
+
+### Comparison: Before vs After
+
+**Before (Manual Setup):**
+```swift
+guard let groupURL = FileManager.default.containerURL(
+    forSecurityApplicationGroupIdentifier: "group.com.company.app"
+) else { fatalError() }
+
+let dbPath = groupURL.appendingPathComponent("MyApp.db").path
+
+DataManager.init()
+DataManager.setDBName(name: "MyApp.db")
+
+if !FileManager.default.fileExists(atPath: dbPath) {
+    if let bundlePath = Bundle.main.path(forResource: "MyApp", ofType: "db") {
+        try? FileManager.default.copyItem(atPath: bundlePath, toPath: dbPath)
+    }
+}
+
+let opened = DataManager.openDBConnection()
+```
+
+**After (SQLContainer):**
+```swift
+let container = try SQLContainer(
+    databaseName: "MyApp.db",
+    groupIdentifier: "group.com.company.app"
+)
+```
+
+### Using with Environment (Optional)
+
+```swift
+struct ContentView: View {
+    @Environment(\.sqlContainer) var container
+
+    var body: some View {
+        Text("Database: \(container?.databasePath ?? "None")")
+    }
+}
+```
+
+### Key Features
+
+- ✅ **SwiftData-like API** - Familiar configuration pattern
+- ✅ **Automatic App Group handling** - Handles all path resolution
+- ✅ **Bundle copying** - Automatically copies database from bundle
+- ✅ **Shared instance support** - Optional singleton pattern
+- ✅ **SwiftUI environment** - Inject container into view hierarchy
+- ✅ **Error handling** - Clear, descriptive errors
+- ✅ **Type-safe** - Full Swift concurrency support
+
+The `SQLContainer` makes it effortless to share your SQLite database across your app, widgets, and extensions!
 
