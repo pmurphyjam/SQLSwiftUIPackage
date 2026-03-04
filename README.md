@@ -26,7 +26,7 @@ You only need to add SQLSwiftUIPackage to your Xcode Project to use.
 
 It will also add two other packages, Apples Logger, and ObjectMapper, this is done automatically through the package dependencies.
   
-To add this package go to Xcode Project 'Info' 'Build Settings' 'Swift Packages' select 'Swift Packages' and hit the '+' button and then enter the URL(git@github.com:pmurphyjam/SQLSwiftUIPackage.git) for this. Xcode should then do the rest for you. There will be three Packages, SQLDataAccess, DataManager, Sqldb, click on all three.
+To add this package go to Xcode Project 'Info' 'Build Settings' 'Swift Packages' select 'Swift Packages' and hit the '+' button and then enter the URL(git@github.com:pmurphyjam/SQLSwiftUIPackage.git) for this. Xcode should then do the rest for you. There will be four Packages, SQLDataAccess, DataManager, Sqldb, SQLExtensions click on all four.
 
 ## Initializing SQLSwiftUIPackage
 
@@ -63,7 +63,7 @@ struct AppInfo: Codable,Sqldb,Mappable {
     var descrip : String? = ""
     var date : Date? = Date()
     var blob : Data?
-    //Optional sortAlpha default is false
+    //Requiired sortAlpha default is false used by Sqldb.
     var sortAlpha: Bool = false
     
     private enum CodingKeys: String, CodingKey {
@@ -261,7 +261,7 @@ struct Models {
   
   As you can see writing the SQL statements is easy for your Models since SQLDataAccess supports writing the SQL statements directly with simple strings like, 'select * from AppInfo'. You don't need to worry about Preferred Statements and obscure SQLite3 low level C method calls, SQLDataAccess does all that for you, and is battle tested so it doesn't leak memory and uses a queue to sync all your operations so they are guaranteed to complete on the proper thread. SQLDataAccess can run on the back ground thread or the foreground thread without crashing unlike Core Data and Realm. Typically you'll write or insert into your DB on a back ground thread through a Server API using Alamofire and decode the Server JSON using the Codable Model defined in AppInfo.swift. Once your data has been written into SQLite, then just issue a completion event to your View Controller, and then call your View Model which will then consume the data from SQLDataAccess on the foreground thread to display your just updated data in your view controller so it can display it.
 
-You can also write the SQL Queries if you choose too, but having the Models.swift do it for you takes advantage of Sqldb extension which creates the inserts and updates for you automatically as long as you define your Codable model properly. 
+You can also write the SQL Queries if you choose too, but having the Models.swift do it for you takes advantage of Sqldb extension which creates the inserts, updates, upserts for you automatically as long as you define your Codable model properly. 
 
 ## SQL Transactions
 
@@ -273,9 +273,11 @@ SQLDataAccess supports high performance SQL Transactions for insert or update al
    let dataArray = DataManager.dataAccess.getRecordsForQueryTrans(sqlAndParams)
 ```
 
-The advantage of this is you can literally insert, update, or select 1,000 Objects at once which is exponentially faster than doing individual inserts, updates or selects back to back. This comes in very handy when your Server API returns a hundred JSON objects that need to be saved in your DB quickly, or you're querying a 100 selects and displaying these Objects in a View. SQLDataAccess spends no more than a few hundred milliseconds writing all that data into the DB, rather than seconds if you were to do them individually.
+The advantage of this is you can literally insert, update, selects, upsert for a 1,000 Objects at once which is exponentially faster than doing individual inserts, updates or selects back to back. This comes in very handy when your Server API returns a hundred JSON objects that need to be saved in your DB quickly, or you're querying a 100 selects and displaying these Objects in a View. SQLDataAccess spends no more than a few hundred milliseconds writing all that data into the DB, rather than seconds if you were to do them individually. If you use upserts it's even faster because SQLite doesn't have to check if the data already exists in the database.
 
 The executeStatementSQL and getRecordsForQuerySQL will take a regular SQL Query with Parameters and output sqlAndParams Array's that can be appended too and consumed by executeTransaction or getRecordsForQueryTrans.
+
+The SQL Queries are much more powerful then using SwiftData to filter through various Arrays of data to filter your data, and much faster.
 
 The power of Transactions give's SQLite high performance capabilities.
 
@@ -288,9 +290,9 @@ When you write your SQL Queries as a String, all the terms that follow are in a 
 
 ## Upsert Capability For High Performance
 
-Usually in order for you to insert or update the SQLite DB, you need to know if the data already exists in the DB or not. As such you usually execute a SQL query to determine if the data exists, if it does you do an update, if it doesn't you then do an insert. When fetching lots of data from a Server where megabytes of JSON comes down and then needs to be written into the DB, the SQL query to determine if it exists or not can become expensive performance wise. To get around this issue SQLite supports Upsert which is really just an Insert followed by an On Conflict(id) Do Update SQL Query. The On Conflict statement needs an indexed column that is unique in order to work, a column like id will work. Using the Upsert command you now don't need a separate lookup anymore, and your Codable Model can just parse the JSON and then write it directly into the DB using the Upsert command. The Upsert SQL query will determine if it needs to do an insert or an update automatically. The Sqldb package will create the SQL for you for the Upsert command, simply call Sqldb : getSQLUpsertValid(whereItems:"items",forId:"id") where the forId is the column that is indexed and has to be unique.
+Usually in order for you to insert or update the SQLite DB, you need to know if the data already exists in the DB or not. As such you usually execute a SQL query to determine if the data exists, if it does you do an update, if it doesn't you then do an insert. When fetching lots of data from a Server where megabytes of JSON comes down and then needs to be written into the DB, the SQL query to determine if it exists or not can become expensive performance wise. To get around this issue SQLite supports Upsert which is really just an Insert followed by an On Conflict(id) Do Update SQL Query. The On Conflict statement needs an indexed column that is unique in order to work, a column like id will work. Using the Upsert command you now don't need a separate lookup anymore, and your Codable Model can just parse the JSON and then write it directly into the DB using the Upsert command. The Upsert SQL query will determine if it needs to do an insert or an update automatically. The Sqldb package will create the SQL for you for the Upsert command, simply call Sqldb : getSQLUpsertValid(whereItems:"items",forId:"id") where the forId is the column that is indexed and has to be unique. Using this and SQL Transactions make inserting or updating large amounts of data very efficient and fast.
 
-Using Upsert you can see a 2X performance speed up for inserting or updating large amounts of data into SQLite.
+Using Upsert you can see a 10X performance speed up for inserting or updating large amounts of data into SQLite.
 
 ## Data Types SQLDataAccess Supports
 
@@ -317,7 +319,7 @@ You can also store Swift UUID directy of type ***UUID.***
 You just declare these types in tables, and and your Codable struct, and SQLDataAccess does the rest for you!
 
 ## Support for Foreign Keys
-SQLite supports foreign Keys which are used to enforce relationships between table Id's. These keys speed up your SQL queries and make it easy to delete or update items in tables quickly. By default SQLite comes with foreignKeys disabled, you have to turn it on with:
+SQLite supports foreign Keys which are used to enforce relationships between table Id's. These keys speed up your SQL queries and make it easy to delete or update items in tables quickly since SQLIte indexes these tables for efficient access. By default SQLite comes with foreignKeys disabled, you have to turn it on with:
 
 ```swift
 DataManager.openDBConnection()
@@ -328,7 +330,7 @@ Now foreign Key access is enabled and checked on all your SQL queries. Typically
 
 ## SQLCipher and Encryption
 	
-In addition SQLDataAccess will also work with SQLCipher, and it's pretty easy to do. To use SQLCipher you must remove 'libsqlite3.tbd' and add 'libsqlcipher-ios.a'. You must also add '-DSQLITE_HAS_CODEC', you then encrypt the Database by calling DataManager.dbEncrypt(key), and you can decrypt it using DataManager.dbDecrypt(). You just set your encryption key, and your done. 
+In addition SQLDataAccess will also work with SQLCipher, and it's pretty easy to do. To use SQLCipher you must remove 'libsqlite3.tbd' and add 'libsqlcipher-ios.a'. You must also add '-DSQLITE_HAS_CODEC', you then encrypt the Database by calling DataManager.dbEncrypt(key), and you can decrypt it using DataManager.dbDecrypt(). You just set your encryption key, and your done. If you encrypt your database nobody can examine it's contents, this is required for Medical or Military Apps.
 
 ## Battle Tested and High Performance
 
@@ -336,11 +338,14 @@ SQLDataAccess is a very fast and efficient class and guaranteed to not leak memo
 
 So make your life easier, and all your Apps more reliable, and use SQLSwiftUIPackage, and best of all it's free with no license required!
 
+## SwiftData Issues
+SwiftData is easy to use in SwiftUI espeically for reactive updates, but it has some nasty underlying problems. The first is you must be very careful in declaring your SwiftData Models especially for arrays any syntax mistake here will cause the App to crash on specific updates to the table. In addition if you use Cloud Storage you can't control when SwiftData will decide to update it's data on the Cloud, if it decides to do this over Cellular, and you lose the Cellular connection during this update, then SwiftData will crash. This is one of the most common problems with SwiftData and accounts for 70% of it's crashes.
+
 ---
 
 ## SQLExtensions Examples
 
-The SQLExtensions module provides a modern, reactive approach to working with SQLite in SwiftUI applications. Here are comprehensive examples showing all four key features.
+The SQLExtensions module provides a modern, reactive approach to working with SQLite in SwiftUI applications. Here are comprehensive examples showing all four key features. This makes it very easy to use as a replacement for SwiftData will all the same benefits SwiftData has including sharing data between different applications using Containers.
 
 ### 1. Type-Safe Query Builder
 
