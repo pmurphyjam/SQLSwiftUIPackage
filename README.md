@@ -9,7 +9,7 @@ Swift Observations for @Observable View Models and SwiftUI's @Query equivalent p
 
 It makes using SQLite super easy and intuitive.
 
-##SQLExtensions - Reactive Queries & SwiftUI Integration
+## SQLExtensions - Reactive Queries & SwiftUI Integration
 
 SQLSwiftUIPackage now includes **SQLExtensions**, a powerful set of tools for modern SwiftUI development:
 
@@ -63,7 +63,7 @@ struct AppInfo: Codable,Sqldb,Mappable {
     var descrip : String? = ""
     var date : Date? = Date()
     var blob : Data?
-    //Requiired sortAlpha default is false used by Sqldb.
+    //Required sortAlpha default is false used by Sqldb.
     var sortAlpha: Bool = false
     
     private enum CodingKeys: String, CodingKey {
