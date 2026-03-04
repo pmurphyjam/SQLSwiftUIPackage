@@ -1,7 +1,6 @@
 # CLAUDE.md — SQLSwiftUIPackage Extensions
 ## Reactive SELECT Queries · Type-Safe Query Builder · Swift Observation
 
-
 ---
 
 ## Project Goal
