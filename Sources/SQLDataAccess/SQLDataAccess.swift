@@ -90,6 +90,11 @@ public class SQLDataAccess: NSObject {
         return self.pathForFileWithName(fileName: self.DB2_FILE)
     }
     
+    @objc public func getDBPath() -> String
+    {
+        return self.pathForFileWithName(fileName: self.DB_FILE)
+    }
+    
     public func createDB2()
     {
         let status = self.moveDBtoDocumentDirectoryForName(DB_FILE,dbName:DB2_FILE)
