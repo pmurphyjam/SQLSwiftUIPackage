@@ -139,6 +139,19 @@ public class SQLDataAccess: NSObject {
         return db_format.date(from:date)!
     }
 
+    private func unwrappedParameterValue(_ value: Any) -> Any? {
+        let mirror = Mirror(reflecting: value)
+        guard mirror.displayStyle == .optional else {
+            return value
+        }
+
+        guard let child = mirror.children.first else {
+            return nil
+        }
+
+        return unwrappedParameterValue(child.value)
+    }
+
     public func openConnection(copyFile:Bool = true) -> Bool {
         
         if(sqlite3dbConn != nil)
@@ -302,41 +315,42 @@ public class SQLDataAccess: NSObject {
         {
             var flag:CInt = 0
             for i in 0 ..< parameters.count {
-                
-                if let val = parameters![i] as? Double {
+                let parameter = self.unwrappedParameterValue(parameters![i])
+
+                if let val = parameter as? Double {
                     flag = sqlite3_bind_double(ps, CInt(i+1), CDouble(val))
                 }
-                else if let val = parameters![i] as? Float {
+                else if let val = parameter as? Float {
                     flag = sqlite3_bind_double(ps, CInt(i+1), Double(CFloat(val)))
                 }
-                else if let val = parameters![i] as? Int64 {
+                else if let val = parameter as? Int64 {
                     flag = sqlite3_bind_int64(ps, CInt(i+1), CLongLong(val))
                 }
-                else if let val = parameters![i] as? Int {
+                else if let val = parameter as? Int {
                     flag = sqlite3_bind_int(ps, CInt(i+1), CInt(val))
                 }
-                else if let val = parameters![i] as? Bool {
+                else if let val = parameter as? Bool {
                     let num = val ? 1 : 0
                     flag = sqlite3_bind_int(ps, CInt(i+1), CInt(num))
                 }
-                else if let txt = parameters![i] as? String {
+                else if let txt = parameter as? String {
                     flag = sqlite3_bind_text(ps, CInt(i+1), txt, -1, SQLITE_TRANSIENT)
                     //flag = sqlite3_bind_text(ps, CInt(i+1), txt, Int32(txt.utf8.count), SQLITE_TRANSIENT)
                 }
-                else if let date = parameters![i] as? Date {
+                else if let date = parameter as? Date {
                     let dateStr = self.dbDateStr(date: date)
                     flag = sqlite3_bind_text(ps, CInt(i+1), dateStr, -1, SQLITE_TRANSIENT)
                 }
-                else if let uuid = parameters![i] as? UUID {
+                else if let uuid = parameter as? UUID {
                     let uuidStr = uuid.uuidString
                     flag = sqlite3_bind_text(ps, CInt(i+1), uuidStr, -1, SQLITE_TRANSIENT)
                 }
-                else if let dataValue = parameters![i] as? Data {
+                else if let dataValue = parameter as? Data {
                      dataValue.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
                         flag = sqlite3_bind_blob(ps, CInt(i+1), bytes.baseAddress, CInt(dataValue.count), SQLITE_TRANSIENT)
                     }
                 }
-                else if parameters![i] is NSNull {
+                else if parameter == nil || parameter is NSNull {
                     flag = sqlite3_bind_null(ps,CInt(i+1));
                 }
                 else
